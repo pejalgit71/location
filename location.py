@@ -2,13 +2,15 @@ import streamlit as st
 
 st.set_page_config(page_title="📍 GPS Tracker + Map", page_icon="🗺️")
 st.title("📍 GPS Tracker with Map")
-st.write("Click the button below to get your GPS coordinates and display them on a map.")
+st.write("Click the button below to get your GPS coordinates and display them on a clean map frame.")
 
-# HTML + JS to get GPS and send to Streamlit hidden text area
+# HTML + JS block with responsive map
 gps_html = """
-<button onclick="getLocation()">📍 Get My Location</button>
-<p id="output">Waiting for location...</p>
-<div id="map" style="height: 400px; margin-top: 10px;"></div>
+<div style="max-width:600px; margin:auto;">
+    <button onclick="getLocation()" style="width:100%; padding:10px; font-size:16px;">📍 Get My Location</button>
+    <p id="output" style="text-align:center; margin-top:10px;">Waiting for location...</p>
+    <div id="map" style="height:400px; width:100%; margin-top:10px; border:1px solid #ccc; border-radius:8px;"></div>
+</div>
 
 <link
   rel="stylesheet"
@@ -61,7 +63,6 @@ function getLocation() {
 </script>
 """
 
-# Inject HTML/JS component
 st.components.v1.html(gps_html, height=550)
 
 # Hidden textarea to receive coordinates
