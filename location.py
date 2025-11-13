@@ -1,65 +1,49 @@
 import streamlit as st
 import json
 
-st.set_page_config(page_title="📍 GPS Locator", page_icon="🌍")
+st.set_page_config(page_title="📍 GPS Tracker", page_icon="🌍")
 
-st.title("📍 My GPS Location Tracker")
-st.write("Press the button below to get your current location (latitude & longitude).")
-
-# HTML + JS bridge to get location and post to Streamlit
-gps_code = """
-<script>
-function sendLocationToStreamlit(latitude, longitude, accuracy) {
-    const data = {lat: latitude, lon: longitude, acc: accuracy};
-    const json = JSON.stringify(data);
-    const streamlitEvent = new CustomEvent("streamlit:location", {detail: json});
-    window.parent.document.dispatchEvent(streamlitEvent);
-}
-
-function getLocation() {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            function(position) {
-                const latitude = position.coords.latitude;
-                const longitude = position.coords.longitude;
-                const accuracy = position.coords.accuracy;
-                sendLocationToStreamlit(latitude, longitude, accuracy);
-            },
-            function(error) {
-                alert("Error getting location: " + error.message);
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 0
-            }
-        );
-    } else {
-        alert("Geolocation is not supported by this browser.");
+st.markdown(
+    """
+    <script>
+    // Register PWA service worker
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/static/service-worker.js');
     }
+    </script>
+    """,
+    unsafe_allow_html=True
+)
+
+st.title("📍 My GPS Tracker (PWA Ready)")
+st.write("Tap the button below to get your current location.")
+
+# JavaScript to request location
+html_code = """
+<button onclick="getLocation()">📍 Get My Location</button>
+<p id="output"></p>
+<script>
+function getLocation() {
+  const output = document.getElementById('output');
+  if (!navigator.geolocation) {
+    output.innerHTML = "Geolocation not supported.";
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const lat = pos.coords.latitude.toFixed(6);
+      const lon = pos.coords.longitude.toFixed(6);
+      const acc = pos.coords.accuracy.toFixed(1);
+      output.innerHTML = `Latitude: ${lat}<br>Longitude: ${lon}<br>Accuracy: ±${acc} m<br><a href="https://www.google.com/maps?q=${lat},${lon}" target="_blank">Open in Google Maps</a>`;
+    },
+    (err) => {
+      output.innerHTML = "Error: " + err.message;
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
 }
 </script>
-<button onclick="getLocation()">📍 Get My Location</button>
 """
 
-# Inject HTML into Streamlit
-st.components.v1.html(gps_code, height=100)
-
-# Streamlit listener
-st.markdown("### Output:")
-location_data = st.session_state.get("location_data", None)
-
-# JavaScript → Streamlit bridge using `st.experimental_data_editor` trick
-loc_input = st.text_area("Hidden Data Exchange Box", key="hidden_box", label_visibility="collapsed")
-
-if loc_input:
-    try:
-        data = json.loads(loc_input)
-        lat, lon, acc = data["lat"], data["lon"], data["acc"]
-        st.success(f"✅ Location Found!\n\n**Latitude:** {lat}\n**Longitude:** {lon}\n**Accuracy:** ±{acc:.1f} m")
-        st.map({"lat": [lat], "lon": [lon]})
-        st.markdown(f"[🌍 Open in Google Maps](https://www.google.com/maps?q={lat},{lon})")
-    except Exception as e:
-        st.warning("⚠️ Location data not received properly. Try again.")
-
-st.caption("Note: Safari on iPhone may restrict GPS access. Works best on Chrome or Edge.")
+st.components.v1.html(html_code, height=300)
+st.caption("💡 Tip: On iPhone, tap 'Share → Add to Home Screen' for full GPS access.")
