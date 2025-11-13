@@ -1,55 +1,53 @@
 import streamlit as st
 
-# Page setup
-st.set_page_config(page_title="My GPS Location", page_icon="📍", layout="centered")
+st.set_page_config(page_title="📍 My GPS Location", page_icon="🌍")
 
 st.title("📍 My Current GPS Location")
-st.write("Tap the button below to share your location.")
+st.write("Tap the button below to share your live location.")
 
-# Add a placeholder for displaying coordinates
-latitude = st.empty()
-longitude = st.empty()
-map_placeholder = st.empty()
+# Create a placeholder for coordinates
+placeholder = st.empty()
 
-# JavaScript to get location from browser
-get_location_js = """
+# HTML + JS block to get location and send to Streamlit
+location_html = """
 <script>
-var showLocation = function (position) {
-    const latitude = position.coords.latitude;
-    const longitude = position.coords.longitude;
-    var coordinates = latitude + "," + longitude;
-    window.parent.postMessage({latitude: latitude, longitude: longitude}, "*");
-};
-
-function errorHandler(err) {
-    if(err.code == 1) {
-        alert("Error: Access to location is denied!");
-    } else if( err.code == 2) {
-        alert("Error: Position unavailable!");
-    }
-}
-
 function getLocation() {
     if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(showLocation, errorHandler);
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
+                const streamlitInput = window.parent.document.querySelector('input[data-testid="stTextInput-input"]');
+                const hiddenLatLon = latitude + "," + longitude;
+                const inputEvent = new Event("input", { bubbles: true });
+                streamlitInput.value = hiddenLatLon;
+                streamlitInput.dispatchEvent(inputEvent);
+            },
+            function(error) {
+                alert("Error getting location: " + error.message);
+            }
+        );
     } else {
-        alert("Sorry, your browser does not support geolocation!");
+        alert("Geolocation not supported by this browser.");
     }
 }
 </script>
-<button onclick="getLocation()">Get My Location</button>
+
+<button onclick="getLocation()">📍 Get My Location</button>
 """
 
-# Inject the JS
-st.components.v1.html(get_location_js, height=100)
+st.components.v1.html(location_html, height=100)
 
-# Receive coordinates from JS
-location_data = st.experimental_get_query_params()
-if 'latitude' in location_data and 'longitude' in location_data:
-    lat = float(location_data['latitude'][0])
-    lon = float(location_data['longitude'][0])
-    latitude.write(f"**Latitude:** {lat}")
-    longitude.write(f"**Longitude:** {lon}")
-    map_placeholder.map({"lat": [lat], "lon": [lon]})
+# Hidden text input to receive data from JS
+coords = st.text_input("Coordinates (auto-filled)", value="", label_visibility="collapsed")
+
+if coords:
+    try:
+        lat, lon = map(float, coords.split(","))
+        st.success(f"✅ Location found!\n\n**Latitude:** {lat}\n**Longitude:** {lon}")
+        st.map({"lat": [lat], "lon": [lon]})
+        st.markdown(f"[Open in Google Maps](https://www.google.com/maps?q={lat},{lon})")
+    except:
+        st.error("Could not parse GPS data. Try again.")
 else:
-    st.info("Click the button to allow location access.")
+    st.info("Click the button and allow location permission.")
