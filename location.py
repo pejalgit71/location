@@ -1,73 +1,56 @@
 import streamlit as st
-import folium
 
 st.set_page_config(page_title="📍 GPS Map Tracker", page_icon="🗺️")
-
 st.title("📍 My GPS Location Tracker")
-st.write("Tap the button below to get your GPS coordinates and view your location on a live map.")
+st.write("Tap the button to get your GPS location and see it on the map.")
 
-# HTML + JS block for location retrieval
-gps_html = """
+# HTML + JS block with Leaflet map
+html_code = """
+<div id="map" style="height: 500px;"></div>
 <button onclick="getLocation()">📍 Get My Location</button>
-<p id="output">Waiting for location...</p>
+<p id="coords">Waiting for location...</p>
+
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-sA+td4N6wNKfCMR4U5lHuVFV5RzhwKkxDRw8r0kPwwo="
+  crossorigin=""
+/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <script>
+var map = L.map('map').setView([0,0], 2);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19
+}).addTo(map);
+
+var marker;
+
 function getLocation() {
-  const output = document.getElementById('output');
   if (!navigator.geolocation) {
-    output.innerHTML = "Geolocation not supported.";
+    alert("Geolocation not supported.");
     return;
   }
   navigator.geolocation.getCurrentPosition(
     (pos) => {
-      const lat = pos.coords.latitude.toFixed(6);
-      const lon = pos.coords.longitude.toFixed(6);
-      const acc = pos.coords.accuracy.toFixed(1);
-      output.innerHTML = `Latitude: ${lat}<br>Longitude: ${lon}<br>Accuracy: ±${acc} m`;
-      const coords = lat + "," + lon + "," + acc;
-      const input = window.parent.document.querySelector('textarea[data-testid="stTextArea-input"]');
-      const event = new Event('input', { bubbles: true });
-      input.value = coords;
-      input.dispatchEvent(event);
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      const acc = pos.coords.accuracy;
+      document.getElementById('coords').innerHTML =
+        `Latitude: ${lat.toFixed(6)}<br>Longitude: ${lon.toFixed(6)}<br>Accuracy: ±${acc.toFixed(1)} m`;
+      
+      map.setView([lat, lon], 16);
+      if (marker) { map.removeLayer(marker); }
+      marker = L.marker([lat, lon]).addTo(map)
+        .bindPopup(`📍 You are here<br>Accuracy ±${acc.toFixed(1)} m`)
+        .openPopup();
     },
-    (err) => {
-      output.innerHTML = "Error: " + err.message;
-    },
+    (err) => { alert("Error: " + err.message); },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
   );
 }
 </script>
 """
 
-# Inject the HTML button
-st.components.v1.html(gps_html, height=150)
-
-# Hidden field to store coordinates
-coords = st.text_area("Hidden GPS data", label_visibility="collapsed")
-
-if coords:
-    try:
-        lat, lon, acc = map(float, coords.split(","))
-        st.success(f"✅ Location Found! Accuracy ±{acc:.1f} m")
-        st.write(f"**Latitude:** {lat}")
-        st.write(f"**Longitude:** {lon}")
-
-        # Create folium map manually
-        map_center = [lat, lon]
-        m = folium.Map(location=map_center, zoom_start=17, control_scale=True)
-        folium.Marker(
-            map_center,
-            popup=f"📍 You are here<br>Lat: {lat}<br>Lon: {lon}<br>Accuracy: ±{acc:.1f} m",
-            icon=folium.Icon(color="red", icon="info-sign")
-        ).add_to(m)
-
-        # Convert to HTML string and display
-        map_html = m._repr_html_()
-        st.components.v1.html(map_html, height=500)
-
-        # Add a link to Google Maps
-        st.markdown(f"[🌍 Open in Google Maps](https://www.google.com/maps?q={lat},{lon})")
-
-    except Exception as e:
-        st.warning("⚠️ Could not render the map properly. Try again.")
-else:
-    st.info("Click the button to allow GPS access.")
+st.components.v1.html(html_code, height=600)
+st.caption("Works on iPhone Safari, Android Chrome, Desktop. Fully interactive map.")
