@@ -2,7 +2,7 @@ import streamlit as st
 
 st.set_page_config(page_title="📍 My GPS Location", page_icon="🌍")
 
-st.title("📍 My Current GPS Location")
+st.title("📍 My Current GPS Location -faizal")
 st.write("Tap the button below to share your live location.")
 
 # Create a placeholder for coordinates
