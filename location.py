@@ -71,6 +71,7 @@ coords = st.text_area("Hidden GPS data", label_visibility="collapsed")
 if coords:
     try:
         lat, lon, acc = map(float, coords.split(","))
+        st.write("lat -", lat)
         st.success(f"✅ Location Found! Accuracy ±{acc:.1f} m")
         st.write(f"**Latitude:** {lat}")
         st.write(f"**Longitude:** {lon}")
