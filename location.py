@@ -47,10 +47,14 @@ function getLocation() {
                 .openPopup();
 
             // Send to Streamlit hidden textarea
-            const hidden_input = window.parent.document.querySelector('textarea[data-testid="stTextArea-input"]');
-            const event = new Event('input', { bubbles: true });
-            hidden_input.value = lat + "," + lon + "," + acc;
-            hidden_input.dispatchEvent(event);
+            // Send to Streamlit hidden textarea
+            const hidden_input = document.querySelector('textarea#gps_data');
+            if (hidden_input) {
+                const event = new Event('input', { bubbles: true });
+                hidden_input.value = lat + "," + lon + "," + acc;
+                hidden_input.dispatchEvent(event);
+            }
+
 
         },
         (err) => {
@@ -66,12 +70,13 @@ function getLocation() {
 st.components.v1.html(gps_html, height=550)
 
 # Hidden textarea to receive coordinates
-coords = st.text_area("Hidden GPS data", label_visibility="collapsed")
+coords = st.text_area("Hidden GPS data", key="gps_data", label_visibility="collapsed")
+
 
 if coords:
     try:
         lat, lon, acc = map(float, coords.split(","))
-        st.write("lat -", lat)
+        st.write(lat)
         st.success(f"✅ Location Found! Accuracy ±{acc:.1f} m")
         st.write(f"**Latitude:** {lat}")
         st.write(f"**Longitude:** {lon}")
