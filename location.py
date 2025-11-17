@@ -16,12 +16,12 @@ gps_html = """
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-var map = L.map('map', {tap:false}).setView([0,0], 2); // tap:false fixes mobile tile issue
+var map = L.map('map', {tap:false}).setView([0,0], 2); // tap:false removes tile bugs
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     tileSize: 256,
     detectRetina: true,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+    attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
 var marker;
@@ -32,30 +32,28 @@ function getLocation() {
         output.innerHTML = "Geolocation not supported.";
         return;
     }
+
     navigator.geolocation.getCurrentPosition(
         (pos) => {
             const lat = pos.coords.latitude.toFixed(6);
             const lon = pos.coords.longitude.toFixed(6);
             const acc = pos.coords.accuracy.toFixed(1);
+
             output.innerHTML = `Latitude: ${lat}<br>Longitude: ${lon}<br>Accuracy: ±${acc} m`;
 
             // Update map
             map.setView([lat, lon], 16);
             if (marker) { map.removeLayer(marker); }
             marker = L.marker([lat, lon]).addTo(map)
-                .bindPopup(`📍 You are here<br>Accuracy ±${acc} m`)
+                .bindPopup(`📍 You are here<br>Accuracy: ±${acc} m`)
                 .openPopup();
 
-            // Send to Streamlit hidden textarea
-            // Send to Streamlit hidden textarea
+            // Send to Streamlit textarea (inside iframe)
             const hidden_input = document.querySelector('textarea#gps_data');
             if (hidden_input) {
-                const event = new Event('input', { bubbles: true });
                 hidden_input.value = lat + "," + lon + "," + acc;
-                hidden_input.dispatchEvent(event);
+                hidden_input.dispatchEvent(new Event('input', { bubbles: true }));
             }
-
-
         },
         (err) => {
             output.innerHTML = "Error: " + err.message;
@@ -66,17 +64,16 @@ function getLocation() {
 </script>
 """
 
-# Inject HTML/JS
+# Inject custom HTML
 st.components.v1.html(gps_html, height=550)
 
-# Hidden textarea to receive coordinates
+# Hidden textarea for receiving GPS values
 coords = st.text_area("Hidden GPS data", key="gps_data", label_visibility="collapsed")
 
-
+# Process received GPS data
 if coords:
     try:
         lat, lon, acc = map(float, coords.split(","))
-        st.write(lat)
         st.success(f"✅ Location Found! Accuracy ±{acc:.1f} m")
         st.write(f"**Latitude:** {lat}")
         st.write(f"**Longitude:** {lon}")
